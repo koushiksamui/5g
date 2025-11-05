@@ -1,0 +1,12 @@
+{
+    "build": {
+        "apk": {
+            "releaseChannel": "default",
+            "developmentClient": false,
+            "distribution": "store",
+            "android": {
+                "buildType": "apk"
+            }
+        }
+    }
+}

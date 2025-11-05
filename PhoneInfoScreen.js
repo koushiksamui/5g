@@ -8,10 +8,14 @@ import {
     StatusBar,
     PermissionsAndroid,
     Platform,
+    Linking,
+    Alert,
+    NativeModules,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DeviceInfo from 'react-native-device-info';
 import NetInfo from '@react-native-community/netinfo';
+import SendIntentAndroid from 'react-native-send-intent';
 
 export default function PhoneInfoScreen() {
     const [phoneInfo, setPhoneInfo] = useState({
@@ -24,6 +28,73 @@ export default function PhoneInfoScreen() {
         serialNumber: 'Loading...',
         androidId: 'Loading...',
     });
+
+    const openDeviceTestingMenu = async () => {
+        if (Platform.OS !== 'android') {
+            Alert.alert('Not Available', 'This feature is only available on Android devices.');
+            return;
+        }
+
+        try {
+            // Try to open using the intent action directly
+            await SendIntentAndroid.openSettings('com.android.settings.TESTING_SETTINGS');
+        } catch (error) {
+            // Fallback: try opening via app package
+            try {
+                await SendIntentAndroid.openApp('com.android.settings', {
+                    component: 'com.android.settings/.Settings$TestingSettingsActivity'
+                });
+            } catch (error2) {
+                // Final fallback: open dialer with code
+                Alert.alert(
+                    'Testing Menu Not Available',
+                    'The device testing menu is not accessible on this device. You can try dialing *#*#4636#*#* in the phone dialer app.',
+                    [
+                        { text: 'Open Dialer', onPress: openDialer },
+                        { text: 'Cancel', style: 'cancel' }
+                    ]
+                );
+            }
+        }
+    };
+
+    const openDialer = () => {
+        const url = 'tel:*#*#4636#*#*';
+        Linking.openURL(url).catch((err) => {
+            console.error('Error opening dialer:', err);
+            Alert.alert('Error', 'Unable to open dialer');
+        });
+    };
+
+    const openNetworkSettings = async () => {
+        if (Platform.OS !== 'android') {
+            Alert.alert('Not Available', 'This feature is only available on Android devices.');
+            return;
+        }
+
+        try {
+            await SendIntentAndroid.openSettings('android.settings.NETWORK_OPERATOR_SETTINGS');
+        } catch (error) {
+            try {
+                await SendIntentAndroid.openSettings('android.settings.WIRELESS_SETTINGS');
+            } catch (error2) {
+                Alert.alert('Error', 'Unable to open network settings');
+            }
+        }
+    };
+
+    const openAboutPhone = async () => {
+        if (Platform.OS !== 'android') {
+            Alert.alert('Not Available', 'This feature is only available on Android devices.');
+            return;
+        }
+
+        try {
+            await SendIntentAndroid.openSettings('android.settings.DEVICE_INFO_SETTINGS');
+        } catch (error) {
+            Alert.alert('Error', 'Unable to open device info');
+        }
+    };
 
     useEffect(() => {
         requestPermissions();
@@ -127,6 +198,13 @@ export default function PhoneInfoScreen() {
         </View>
     );
 
+    const ActionButton = ({ title, onPress, icon }) => (
+        <TouchableOpacity style={styles.actionButton} onPress={onPress}>
+            <Text style={styles.actionButtonIcon}>{icon}</Text>
+            <Text style={styles.actionButtonText}>{title}</Text>
+        </TouchableOpacity>
+    );
+
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="light-content" backgroundColor="#000000" />
@@ -143,11 +221,39 @@ export default function PhoneInfoScreen() {
 
             <ScrollView style={styles.content}>
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Select phone index</Text>
-                    <View style={styles.dropdown}>
-                        <Text style={styles.dropdownText}>Phone 0</Text>
-                        <Text style={styles.dropdownArrow}>▼</Text>
-                    </View>
+                    <Text style={styles.sectionTitle}>Native Android Menus</Text>
+                    <Text style={styles.sectionDescription}>
+                        Access native Android device testing and configuration menus
+                    </Text>
+                </View>
+
+                <View style={styles.buttonGroup}>
+                    <ActionButton
+                        title="Device Testing Menu"
+                        icon="📱"
+                        onPress={openDeviceTestingMenu}
+                    />
+                    <ActionButton
+                        title="Network Settings"
+                        icon="📡"
+                        onPress={openNetworkSettings}
+                    />
+                    <ActionButton
+                        title="About Phone"
+                        icon="ℹ️"
+                        onPress={openAboutPhone}
+                    />
+                    <ActionButton
+                        title="Open Dialer (*#*#4636#*#*)"
+                        icon="☎️"
+                        onPress={openDialer}
+                    />
+                </View>
+
+                <View style={styles.divider} />
+
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Current Device Information</Text>
                 </View>
 
                 <InfoRow
@@ -162,16 +268,6 @@ export default function PhoneInfoScreen() {
                 />
 
                 <InfoRow
-                    label="Current subID:"
-                    value="1"
-                />
-
-                <InfoRow
-                    label="SubId of default data SIM:"
-                    value="1"
-                />
-
-                <InfoRow
                     label="IMSI:"
                     value={phoneInfo.androidId}
                 />
@@ -179,11 +275,6 @@ export default function PhoneInfoScreen() {
                 <InfoRow
                     label="Current network:"
                     value={phoneInfo.carrier}
-                />
-
-                <InfoRow
-                    label="Roaming:"
-                    value="Not roaming"
                 />
 
                 <InfoRow
@@ -195,109 +286,6 @@ export default function PhoneInfoScreen() {
                     label="Data network type:"
                     value={phoneInfo.networkType.toUpperCase()}
                 />
-
-                <InfoRow
-                    label="Data raw registration state:"
-                    value="HOME"
-                />
-
-                <InfoRow
-                    label="Override network type:"
-                    value="NONE"
-                />
-
-                <InfoRow
-                    label="Voice service:"
-                    value="In service"
-                />
-
-                <InfoRow
-                    label="Voice network type:"
-                    value="Unknown"
-                />
-
-                <InfoRow
-                    label="Voice raw registration state:"
-                    value="NOT_REG_OR_SEARCHING"
-                />
-
-                <InfoRow
-                    label="WLAN data raw registration state:"
-                    value="NOT_REG_OR_SEARCHING"
-                />
-
-                <InfoRow
-                    label="Signal strength:"
-                    value="-105 dBm  35 asu"
-                />
-
-                <InfoRow
-                    label="DL bandwidth (kbps):"
-                    value="37776"
-                />
-
-                <InfoRow
-                    label="UL bandwidth (kbps):"
-                    value="6531"
-                />
-
-                <InfoRow
-                    label="EN-DC available (NSA):"
-                    value="false"
-                />
-
-                <InfoRow
-                    label="DCNR restricted (NSA):"
-                    value="false"
-                />
-
-                <InfoRow
-                    label="NR available (NSA):"
-                    value="false"
-                />
-
-                <InfoRow
-                    label="NR state (NSA):"
-                    value="NONE"
-                />
-
-                <InfoRow
-                    label="NR frequency:"
-                    value="HIGH"
-                />
-
-                <InfoRow
-                    label="Network Slicing Config:"
-                    value="Unable to get slicing config."
-                />
-
-                <InfoRow
-                    label="eUICC info:"
-                    value="Euicc Feature is disabled"
-                />
-
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Set preferred network type:</Text>
-                    <View style={styles.dropdown}>
-                        <Text style={styles.dropdownText}>NR only</Text>
-                        <Text style={styles.dropdownArrow}>▼</Text>
-                    </View>
-                </View>
-
-                <View style={styles.section}>
-                    <Text style={styles.label}>Signal strength</Text>
-                </View>
-
-                <View style={styles.section}>
-                    <Text style={styles.label}>Data network type:</Text>
-                </View>
-
-                <View style={[styles.section, styles.toggleSection]}>
-                    <Text style={styles.label}>Mobile radio power</Text>
-                    <View style={styles.toggle}>
-                        <View style={styles.toggleActive} />
-                    </View>
-                </View>
             </ScrollView>
         </SafeAreaView>
     );
@@ -381,6 +369,41 @@ const styles = StyleSheet.create({
     },
     primaryTag: {
         color: '#888888',
+    },
+    buttonGroup: {
+        marginTop: 10,
+        marginBottom: 20,
+        gap: 12,
+    },
+    actionButton: {
+        backgroundColor: '#1A1A1A',
+        padding: 16,
+        borderRadius: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#333333',
+        marginBottom: 12,
+    },
+    actionButtonIcon: {
+        fontSize: 24,
+        marginRight: 12,
+    },
+    actionButtonText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: '500',
+    },
+    sectionDescription: {
+        color: '#888888',
+        fontSize: 13,
+        marginTop: 4,
+        lineHeight: 18,
+    },
+    divider: {
+        height: 1,
+        backgroundColor: '#333333',
+        marginVertical: 24,
     },
     toggleSection: {
         flexDirection: 'row',

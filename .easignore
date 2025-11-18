@@ -2,7 +2,10 @@
 node_modules/
 .expo/
 .git/
+android/
+ios/
 
-# Include the following
+# The config plugin will regenerate android/ios during the build
+# Only include the plugin itself
 !plugins/
-!android/app/src/main/java/com/fiveg/phoneinfo/
+

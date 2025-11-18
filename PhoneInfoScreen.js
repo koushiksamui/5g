@@ -15,7 +15,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DeviceInfo from 'react-native-device-info';
 import NetInfo from '@react-native-community/netinfo';
-import SendIntentAndroid from 'react-native-send-intent';
+
+const { PhoneInfoModule } = NativeModules;
 
 export default function PhoneInfoScreen() {
     const [phoneInfo, setPhoneInfo] = useState({
@@ -36,25 +37,20 @@ export default function PhoneInfoScreen() {
         }
 
         try {
-            // Try to open using the intent action directly
-            await SendIntentAndroid.openSettings('com.android.settings.TESTING_SETTINGS');
-        } catch (error) {
-            // Fallback: try opening via app package
-            try {
-                await SendIntentAndroid.openApp('com.android.settings', {
-                    component: 'com.android.settings/.Settings$TestingSettingsActivity'
-                });
-            } catch (error2) {
-                // Final fallback: open dialer with code
-                Alert.alert(
-                    'Testing Menu Not Available',
-                    'The device testing menu is not accessible on this device. You can try dialing *#*#4636#*#* in the phone dialer app.',
-                    [
-                        { text: 'Open Dialer', onPress: openDialer },
-                        { text: 'Cancel', style: 'cancel' }
-                    ]
-                );
+            if (PhoneInfoModule) {
+                await PhoneInfoModule.openTestingMenu();
+            } else {
+                throw new Error('Native module not available');
             }
+        } catch (error) {
+            Alert.alert(
+                'Testing Menu Not Available',
+                'The device testing menu could not be opened on this device. This feature may not be supported by your device manufacturer.\n\nAlternatives:\n1. Try "Network Settings" button instead\n2. Go to Settings > About Phone > tap Build Number 7 times to enable Developer Options',
+                [
+                    { text: 'Open Network Settings', onPress: openNetworkSettings },
+                    { text: 'OK', style: 'cancel' }
+                ]
+            );
         }
     };
 
@@ -73,13 +69,13 @@ export default function PhoneInfoScreen() {
         }
 
         try {
-            await SendIntentAndroid.openSettings('android.settings.NETWORK_OPERATOR_SETTINGS');
-        } catch (error) {
-            try {
-                await SendIntentAndroid.openSettings('android.settings.WIRELESS_SETTINGS');
-            } catch (error2) {
-                Alert.alert('Error', 'Unable to open network settings');
+            if (PhoneInfoModule) {
+                await PhoneInfoModule.openNetworkSettings();
+            } else {
+                throw new Error('Native module not available');
             }
+        } catch (error) {
+            Alert.alert('Error', 'Unable to open network settings');
         }
     };
 
@@ -90,9 +86,30 @@ export default function PhoneInfoScreen() {
         }
 
         try {
-            await SendIntentAndroid.openSettings('android.settings.DEVICE_INFO_SETTINGS');
+            if (PhoneInfoModule) {
+                await PhoneInfoModule.openDeviceInfo();
+            } else {
+                throw new Error('Native module not available');
+            }
         } catch (error) {
             Alert.alert('Error', 'Unable to open device info');
+        }
+    };
+
+    const openMobileNetworkSettings = async () => {
+        if (Platform.OS !== 'android') {
+            Alert.alert('Not Available', 'This feature is only available on Android devices.');
+            return;
+        }
+
+        try {
+            if (PhoneInfoModule) {
+                await PhoneInfoModule.openMobileNetworkSettings();
+            } else {
+                throw new Error('Native module not available');
+            }
+        } catch (error) {
+            Alert.alert('Error', 'Unable to open mobile network settings');
         }
     };
 
@@ -211,11 +228,11 @@ export default function PhoneInfoScreen() {
 
             <View style={styles.header}>
                 <TouchableOpacity style={styles.backButton}>
-                    <Text style={styles.backButtonText}>←</Text>
+                    {/* <Text style={styles.backButtonText}>←</Text> */}
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Phone info</Text>
                 <TouchableOpacity style={styles.menuButton}>
-                    <Text style={styles.menuButtonText}>⋮</Text>
+                    {/* <Text style={styles.menuButtonText}>⋮</Text> */}
                 </TouchableOpacity>
             </View>
 
@@ -234,19 +251,19 @@ export default function PhoneInfoScreen() {
                         onPress={openDeviceTestingMenu}
                     />
                     <ActionButton
-                        title="Network Settings"
+                        title="Mobile Network Settings"
                         icon="📡"
+                        onPress={openMobileNetworkSettings}
+                    />
+                    <ActionButton
+                        title="Network Settings"
+                        icon="🌐"
                         onPress={openNetworkSettings}
                     />
                     <ActionButton
                         title="About Phone"
                         icon="ℹ️"
                         onPress={openAboutPhone}
-                    />
-                    <ActionButton
-                        title="Open Dialer (*#*#4636#*#*)"
-                        icon="☎️"
-                        onPress={openDialer}
                     />
                 </View>
 

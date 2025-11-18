@@ -1,0 +1,8 @@
+# Files to exclude from EAS builds
+node_modules/
+.expo/
+.git/
+
+# Include the following
+!plugins/
+!android/app/src/main/java/com/fiveg/phoneinfo/

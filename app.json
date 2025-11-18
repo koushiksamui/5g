@@ -40,7 +40,8 @@
             "minSdkVersion": 24
           }
         }
-      ]
+      ],
+      "./plugins/withPhoneInfoModule.js"
     ],
     "extra": {
       "eas": {

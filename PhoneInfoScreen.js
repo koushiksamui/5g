@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -30,6 +30,97 @@ export default function PhoneInfoScreen() {
         androidId: 'Loading...',
     });
 
+    const [currentNetworkMode, setCurrentNetworkMode] = useState('Loading...');
+
+    useEffect(() => {
+        requestPermissions();
+        loadNetworkMode();
+    }, []);
+
+    const loadNetworkMode = async () => {
+        if (Platform.OS !== 'android' || !PhoneInfoModule) {
+            setCurrentNetworkMode('Not available');
+            return;
+        }
+        
+        try {
+            if (typeof PhoneInfoModule.getPreferredNetworkType === 'function') {
+                const result = await PhoneInfoModule.getPreferredNetworkType();
+                setCurrentNetworkMode(result.networkTypeName);
+            } else {
+                setCurrentNetworkMode('Rebuild app to enable this feature');
+            }
+        } catch (error) {
+            console.log('Error loading network mode:', error);
+            setCurrentNetworkMode('Unable to read');
+        }
+    };
+
+    const setTo5GOnly = async () => {
+        if (Platform.OS !== 'android') {
+            Alert.alert('Not Available', 'This feature is only available on Android devices.');
+            return;
+        }
+
+        try {
+            if (PhoneInfoModule && typeof PhoneInfoModule.setTo5GOnly === 'function') {
+                await PhoneInfoModule.setTo5GOnly();
+                Alert.alert('Success', 'Network mode set to 5G only (NR only)');
+                loadNetworkMode();
+            } else {
+                Alert.alert(
+                    'Feature Not Available',
+                    'This feature requires a rebuild.\n\nRun: eas build --platform android --profile development\n\nThen grant permission:\nadb shell pm grant com.fiveg.phoneinfo android.permission.WRITE_SECURE_SETTINGS'
+                );
+            }
+        } catch (error) {
+            if (error.code === 'PERMISSION_DENIED') {
+                Alert.alert(
+                    'Permission Required',
+                    'This app needs system-level permissions to change network settings.\n\nTo grant permission via ADB:\nadb shell pm grant com.fiveg.phoneinfo android.permission.WRITE_SECURE_SETTINGS\n\nOr change it manually from the Testing Menu.',
+                    [
+                        { text: 'Open Testing Menu', onPress: openDeviceTestingMenu },
+                        { text: 'OK', style: 'cancel' }
+                    ]
+                );
+            } else {
+                Alert.alert('Error', error.message || 'Failed to set network mode');
+            }
+        }
+    };
+
+    const setTo5G4G = async () => {
+        if (Platform.OS !== 'android') return;
+
+        try {
+            if (PhoneInfoModule && typeof PhoneInfoModule.setTo5G4G === 'function') {
+                await PhoneInfoModule.setTo5G4G();
+                Alert.alert('Success', 'Network mode set to 5G/4G (NR/LTE)');
+                loadNetworkMode();
+            } else {
+                Alert.alert('Feature Not Available', 'This feature requires a rebuild. Run: eas build --platform android --profile development');
+            }
+        } catch (error) {
+            Alert.alert('Error', error.message || 'Failed to set network mode');
+        }
+    };
+
+    const setTo4GOnly = async () => {
+        if (Platform.OS !== 'android') return;
+
+        try {
+            if (PhoneInfoModule && typeof PhoneInfoModule.setTo4GOnly === 'function') {
+                await PhoneInfoModule.setTo4GOnly();
+                Alert.alert('Success', 'Network mode set to 4G only (LTE only)');
+                loadNetworkMode();
+            } else {
+                Alert.alert('Feature Not Available', 'This feature requires a rebuild. Run: eas build --platform android --profile development');
+            }
+        } catch (error) {
+            Alert.alert('Error', error.message || 'Failed to set network mode');
+        }
+    };
+
     const openDeviceTestingMenu = async () => {
         if (Platform.OS !== 'android') {
             Alert.alert('Not Available', 'This feature is only available on Android devices.');
@@ -40,14 +131,20 @@ export default function PhoneInfoScreen() {
             if (PhoneInfoModule) {
                 await PhoneInfoModule.openTestingMenu();
             } else {
-                throw new Error('Native module not available');
+                Alert.alert(
+                    'Native Module Not Available',
+                    'The native module is not loaded in your current build.\n\nTo enable all features, rebuild the app with:\neas build --platform android --profile development\n\nAlternative: Dial *#*#4636#*#* manually from your phone app.',
+                    [
+                        { text: 'OK' }
+                    ]
+                );
             }
         } catch (error) {
             Alert.alert(
                 'Testing Menu Not Available',
-                'The device testing menu could not be opened on this device. This feature may not be supported by your device manufacturer.\n\nAlternatives:\n1. Try "Network Settings" button instead\n2. Go to Settings > About Phone > tap Build Number 7 times to enable Developer Options',
+                'The device testing menu could not be opened.\n\nTry dialing *#*#4636#*#* from your phone app, or rebuild the app to fix this issue.',
                 [
-                    { text: 'Open Network Settings', onPress: openNetworkSettings },
+                    { text: 'Open Settings', onPress: openNetworkSettings },
                     { text: 'OK', style: 'cancel' }
                 ]
             );
@@ -72,10 +169,22 @@ export default function PhoneInfoScreen() {
             if (PhoneInfoModule) {
                 await PhoneInfoModule.openNetworkSettings();
             } else {
-                throw new Error('Native module not available');
+                // Fallback: Use Linking to open settings
+                const supported = await Linking.canOpenURL('app-settings:');
+                if (supported) {
+                    await Linking.openSettings();
+                } else {
+                    Alert.alert('Not Available', 'Unable to open network settings. Please rebuild the app with: eas build --platform android --profile development');
+                }
             }
         } catch (error) {
-            Alert.alert('Error', 'Unable to open network settings');
+            console.error('Network settings error:', error);
+            // Try opening general settings as fallback
+            try {
+                await Linking.openSettings();
+            } catch (e) {
+                Alert.alert('Error', 'Unable to open settings. Please rebuild the app.');
+            }
         }
     };
 
@@ -89,10 +198,12 @@ export default function PhoneInfoScreen() {
             if (PhoneInfoModule) {
                 await PhoneInfoModule.openDeviceInfo();
             } else {
-                throw new Error('Native module not available');
+                // Fallback: Use Linking to open general settings
+                await Linking.openSettings();
             }
         } catch (error) {
-            Alert.alert('Error', 'Unable to open device info');
+            console.error('Device info error:', error);
+            Alert.alert('Error', 'Unable to open device settings. Please rebuild the app with: eas build --platform android --profile development');
         }
     };
 
@@ -106,16 +217,14 @@ export default function PhoneInfoScreen() {
             if (PhoneInfoModule) {
                 await PhoneInfoModule.openMobileNetworkSettings();
             } else {
-                throw new Error('Native module not available');
+                // Fallback: Use Linking to open general settings
+                await Linking.openSettings();
             }
         } catch (error) {
-            Alert.alert('Error', 'Unable to open mobile network settings');
+            console.error('Mobile network settings error:', error);
+            Alert.alert('Error', 'Unable to open mobile network settings.\n\nTo fix this: Rebuild the app with:\neas build --platform android --profile development');
         }
     };
-
-    useEffect(() => {
-        requestPermissions();
-    }, []);
 
     const requestPermissions = async () => {
         if (Platform.OS === 'android') {
@@ -270,6 +379,36 @@ export default function PhoneInfoScreen() {
                 <View style={styles.divider} />
 
                 <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Quick Network Mode Switch</Text>
+                    <Text style={styles.sectionDescription}>
+                        Current mode: {currentNetworkMode}
+                    </Text>
+                    <Text style={styles.sectionWarning}>
+                        Note: Changing network mode requires system permission. If you see a permission error, you can grant it via ADB or change manually in Testing Menu.
+                    </Text>
+                </View>
+
+                <View style={styles.buttonGroup}>
+                    <ActionButton
+                        title="Set to 5G Only (NR only)"
+                        icon="📶"
+                        onPress={setTo5GOnly}
+                    />
+                    <ActionButton
+                        title="Set to 5G/4G (NR/LTE)"
+                        icon="📡"
+                        onPress={setTo5G4G}
+                    />
+                    <ActionButton
+                        title="Set to 4G Only (LTE only)"
+                        icon="📱"
+                        onPress={setTo4GOnly}
+                    />
+                </View>
+
+                <View style={styles.divider} />
+
+                <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Current Device Information</Text>
                 </View>
 
@@ -416,6 +555,13 @@ const styles = StyleSheet.create({
         fontSize: 13,
         marginTop: 4,
         lineHeight: 18,
+    },
+    sectionWarning: {
+        color: '#FFA500',
+        fontSize: 12,
+        marginTop: 8,
+        lineHeight: 16,
+        fontStyle: 'italic',
     },
     divider: {
         height: 1,

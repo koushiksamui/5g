@@ -15,11 +15,11 @@ const withPhoneInfoModule = (config) => {
         if (!mainApplication['uses-permission']) {
             mainApplication['uses-permission'] = [];
         }
-        
+
         const writeSecureSettingsExists = mainApplication['uses-permission'].some(
             (perm) => perm.$?.['android:name'] === 'android.permission.WRITE_SECURE_SETTINGS'
         );
-        
+
         if (!writeSecureSettingsExists) {
             mainApplication['uses-permission'].push({
                 $: { 'android:name': 'android.permission.WRITE_SECURE_SETTINGS' }

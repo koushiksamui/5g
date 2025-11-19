@@ -42,7 +42,7 @@ export default function PhoneInfoScreen() {
             setCurrentNetworkMode('Not available');
             return;
         }
-        
+
         try {
             if (typeof PhoneInfoModule.getPreferredNetworkType === 'function') {
                 const result = await PhoneInfoModule.getPreferredNetworkType();

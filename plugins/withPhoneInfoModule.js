@@ -77,8 +77,8 @@ const withPhoneInfoModule = (config) => {
                 fs.mkdirSync(androidSrcPath, { recursive: true });
             }
 
-        // Write PhoneInfoModule.java
-        const phoneInfoModuleContent = `package com.fiveg.phoneinfo;
+            // Write PhoneInfoModule.java
+            const phoneInfoModuleContent = `package com.fiveg.phoneinfo;
 
 import android.content.ComponentName;
 import android.content.Intent;
@@ -455,11 +455,11 @@ public class PhoneInfoModule extends ReactContextBaseJavaModule {
 }
 `;
 
-        const moduleFilePath = path.join(androidSrcPath, 'PhoneInfoModule.java');
-        fs.writeFileSync(moduleFilePath, phoneInfoModuleContent);
+            const moduleFilePath = path.join(androidSrcPath, 'PhoneInfoModule.java');
+            fs.writeFileSync(moduleFilePath, phoneInfoModuleContent);
 
-        // Write PhoneInfoPackage.java
-        const phoneInfoPackageContent = `package com.fiveg.phoneinfo;
+            // Write PhoneInfoPackage.java
+            const phoneInfoPackageContent = `package com.fiveg.phoneinfo;
 
 import com.facebook.react.ReactPackage;
 import com.facebook.react.bridge.NativeModule;
@@ -485,27 +485,27 @@ public class PhoneInfoPackage implements ReactPackage {
 }
 `;
 
-        const packageFilePath = path.join(androidSrcPath, 'PhoneInfoPackage.java');
-        fs.writeFileSync(packageFilePath, phoneInfoPackageContent);
+            const packageFilePath = path.join(androidSrcPath, 'PhoneInfoPackage.java');
+            fs.writeFileSync(packageFilePath, phoneInfoPackageContent);
 
-        // Modify MainApplication.kt to register the package
-        const mainApplicationPath = path.join(androidSrcPath, 'MainApplication.kt');
-        if (fs.existsSync(mainApplicationPath)) {
-            let mainApplicationContent = fs.readFileSync(mainApplicationPath, 'utf8');
-            
-            // Check if PhoneInfoPackage is already added
-            if (!mainApplicationContent.includes('add(PhoneInfoPackage())')) {
-                // Add the package registration
-                mainApplicationContent = mainApplicationContent.replace(
-                    /\/\/ add\(MyReactNativePackage\(\)\)/,
-                    '// add(MyReactNativePackage())\n              add(PhoneInfoPackage())'
-                );
-                fs.writeFileSync(mainApplicationPath, mainApplicationContent);
+            // Modify MainApplication.kt to register the package
+            const mainApplicationPath = path.join(androidSrcPath, 'MainApplication.kt');
+            if (fs.existsSync(mainApplicationPath)) {
+                let mainApplicationContent = fs.readFileSync(mainApplicationPath, 'utf8');
+
+                // Check if PhoneInfoPackage is already added
+                if (!mainApplicationContent.includes('add(PhoneInfoPackage())')) {
+                    // Add the package registration
+                    mainApplicationContent = mainApplicationContent.replace(
+                        /\/\/ add\(MyReactNativePackage\(\)\)/,
+                        '// add(MyReactNativePackage())\n              add(PhoneInfoPackage())'
+                    );
+                    fs.writeFileSync(mainApplicationPath, mainApplicationContent);
+                }
             }
-        }
 
-        return config;
-    }]);
+            return config;
+        }]);
 
     return config;
 };

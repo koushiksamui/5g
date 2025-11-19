@@ -11,6 +11,21 @@ const withPhoneInfoModule = (config) => {
         const androidManifest = config.modResults;
         const mainApplication = androidManifest.manifest;
 
+        // Add WRITE_SECURE_SETTINGS permission
+        if (!mainApplication['uses-permission']) {
+            mainApplication['uses-permission'] = [];
+        }
+        
+        const writeSecureSettingsExists = mainApplication['uses-permission'].some(
+            (perm) => perm.$?.['android:name'] === 'android.permission.WRITE_SECURE_SETTINGS'
+        );
+        
+        if (!writeSecureSettingsExists) {
+            mainApplication['uses-permission'].push({
+                $: { 'android:name': 'android.permission.WRITE_SECURE_SETTINGS' }
+            });
+        }
+
         // Ensure queries element exists
         if (!mainApplication.queries) {
             mainApplication.queries = [{}];

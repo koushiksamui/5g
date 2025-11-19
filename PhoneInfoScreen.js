@@ -83,8 +83,10 @@ export default function PhoneInfoScreen() {
                         { text: 'OK', style: 'cancel' }
                     ]
                 );
+                console.log('Permission denied error:', error);
             } else {
                 Alert.alert('Error', error.message || 'Failed to set network mode');
+                console.log('Error setting network mode:', error);
             }
         }
     };
@@ -102,6 +104,7 @@ export default function PhoneInfoScreen() {
             }
         } catch (error) {
             Alert.alert('Error', error.message || 'Failed to set network mode');
+            console.log('Error setting network mode:', error);
         }
     };
 
@@ -118,6 +121,7 @@ export default function PhoneInfoScreen() {
             }
         } catch (error) {
             Alert.alert('Error', error.message || 'Failed to set network mode');
+            console.log('Error setting network mode:', error);
         }
     };
 
